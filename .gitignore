@@ -1,0 +1,23 @@
+# 真实密钥与本地环境，绝不入库
+.env
+
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+
+# Flask 实例目录与本地上传/数据
+instance/
+uploads/
+data/
+*.db
+*.db-wal
+*.db-shm
+
+# 测试缓存
+.pytest_cache/
+
+# IDE 本地元数据
+.trae/

@@ -1,0 +1,22 @@
+# 密钥与本地数据不得进入镜像层
+.env
+.git
+.gitignore
+
+# Python 缓存与虚拟环境
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+
+# 本地上传/数据与测试产物
+uploads/
+data/
+*.db
+*.db-wal
+*.db-shm
+.pytest_cache/
+
+# 文档与 OpenSpec 目录不影响运行，不打入镜像
+openspec/
+*.md

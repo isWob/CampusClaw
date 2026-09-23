@@ -1,0 +1,81 @@
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  font-family: "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+  background: #f5f6f8;
+  color: #1f2430;
+}
+
+.topbar {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+  padding: 14px 24px;
+  background: #fff;
+  border-bottom: 1px solid #e3e6ea;
+}
+
+.brand { font-size: 20px; font-weight: 700; color: #94070a; text-decoration: none; }
+.subtitle { color: #6b7280; font-size: 13px; }
+
+.container { max-width: 880px; margin: 32px auto; padding: 0 16px; }
+
+.card {
+  background: #fff;
+  border: 1px solid #e3e6ea;
+  border-radius: 10px;
+  padding: 24px;
+}
+
+.login-card { max-width: 380px; margin: 48px auto; }
+
+.card-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 16px;
+  margin-bottom: 16px;
+}
+
+h1 { font-size: 20px; margin: 0 0 8px; }
+.muted { color: #6b7280; font-size: 14px; margin: 4px 0; }
+
+.form { display: flex; flex-direction: column; gap: 14px; margin-top: 16px; }
+.form label { display: flex; flex-direction: column; gap: 6px; font-size: 14px; }
+input[type="text"], input[type="password"] {
+  padding: 9px 10px; border: 1px solid #cfd4dc; border-radius: 6px; font-size: 14px;
+}
+
+.upload-form {
+  display: flex; align-items: flex-end; gap: 12px;
+  padding: 14px; margin: 12px 0 20px;
+  background: #f8f9fb; border: 1px dashed #cfd4dc; border-radius: 8px;
+}
+.upload-form label { font-size: 14px; display: flex; flex-direction: column; gap: 6px; }
+
+.btn {
+  display: inline-block;
+  padding: 8px 14px;
+  border: 1px solid #cfd4dc;
+  border-radius: 6px;
+  background: #fff;
+  color: #1f2430;
+  font-size: 14px;
+  text-decoration: none;
+  cursor: pointer;
+}
+.btn-primary { background: #94070a; border-color: #94070a; color: #fff; }
+.btn-small { padding: 4px 10px; font-size: 13px; }
+
+.table { width: 100%; border-collapse: collapse; margin-top: 12px; }
+.table th, .table td {
+  text-align: left; padding: 10px 8px;
+  border-bottom: 1px solid #eef0f3; font-size: 14px;
+}
+.table th { color: #6b7280; font-weight: 600; }
+
+.flashes { list-style: none; padding: 0; margin: 0 0 16px; }
+.flash { padding: 10px 12px; border-radius: 6px; font-size: 14px; margin-bottom: 8px; }
+.flash-error { background: #fdecec; color: #94070a; border: 1px solid #f3c2c2; }
+.flash-ok { background: #eaf7ee; color: #176b3a; border: 1px solid #bfe3cd; }

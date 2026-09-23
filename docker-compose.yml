@@ -1,0 +1,28 @@
+# CampusClaw 迭代 1 —— 单服务（Flask + SQLite）可复现启动
+# 用法：
+#   cp .env.example .env   # 填写/确认 SECRET_KEY 与种子口令
+#   docker compose up --build
+#   开放地址：http://localhost:8080 ，健康检查：http://localhost:8080/health
+services:
+  web:
+    build: .
+    image: campusclaw-web:iter1
+    ports:
+      # 只有 web 映射宿主端口；无其他服务端口暴露
+      - "${WEB_PORT:-8080}:8000"
+    environment:
+      # 密钥/口令只经环境注入，绝不打包进镜像；值来自被 git 忽略的 .env
+      SECRET_KEY: ${SECRET_KEY}
+      SEED_TEACHER_A_PASSWORD: ${SEED_TEACHER_A_PASSWORD}
+      SEED_STUDENT_A1_PASSWORD: ${SEED_STUDENT_A1_PASSWORD}
+      SEED_STUDENT_B1_PASSWORD: ${SEED_STUDENT_B1_PASSWORD}
+      MAX_UPLOAD_BYTES: ${MAX_UPLOAD_BYTES:-5242880}
+      DATABASE_PATH: /data/campusclaw.db
+      UPLOAD_DIR: /data/uploads
+    volumes:
+      # 命名卷持久化 SQLite 文件与上传目录：down 再 up（不加 -v）数据仍在
+      - campusclaw-data:/data
+    restart: unless-stopped
+
+volumes:
+  campusclaw-data:

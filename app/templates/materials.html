@@ -1,0 +1,52 @@
+{% extends "base.html" %}
+{% block title %}本班材料 · CampusClaw{% endblock %}
+{% block content %}
+<section class="card">
+  <div class="card-head">
+    <div>
+      <h1>{{ user.username }} 的班级材料</h1>
+      <p class="muted">
+        角色：{{ "教师" if user["role"] == "teacher" else "学生" }}
+        · 班级 id：{{ user["class_id"] }}
+      </p>
+    </div>
+    <form method="post" action="{{ url_for('auth.form_logout') }}">
+      <button type="submit" class="btn">退出登录</button>
+    </form>
+  </div>
+
+  {% if user["role"] == "teacher" %}
+    <form method="post" action="{{ url_for('pages.materials_upload_page') }}"
+          enctype="multipart/form-data" class="upload-form">
+      <label>
+        上传教研材料（仅 .txt / .md，且为 UTF-8 文本）
+        <input type="file" name="file" accept=".txt,.md" required>
+      </label>
+      <button type="submit" class="btn btn-primary">上传入库</button>
+    </form>
+  {% else %}
+    <p class="muted">学生账号可查看、下载本班材料；上传入口仅对教师开放。</p>
+  {% endif %}
+
+  <table class="table">
+    <thead>
+      <tr><th>材料文件名</th><th>上传者</th><th>入库时间</th><th>操作</th></tr>
+    </thead>
+    <tbody>
+      {% for m in materials %}
+        <tr>
+          <td>{{ m["filename"] }}</td>
+          <td>{{ m["uploader_name"] }}</td>
+          <td>{{ m["created_at"] }}</td>
+          <td>
+            <a class="btn btn-small"
+               href="{{ url_for('materials.material_download', material_id=m['id']) }}">下载</a>
+          </td>
+        </tr>
+      {% else %}
+        <tr><td colspan="4" class="muted">本班暂无材料。</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</section>
+{% endblock %}
