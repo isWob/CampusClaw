@@ -27,6 +27,8 @@ services:
       CHAT_BASE_URL: ${CHAT_BASE_URL:-}
       CHAT_API_KEY: ${CHAT_API_KEY:-}
       CHAT_MODEL: ${CHAT_MODEL:-}
+      # 网关 key 亦可统一走 SiliconFlow_KEY（config.py 回退读取），不落盘 .env
+      SiliconFlow_KEY: ${SiliconFlow_KEY:-}
       TUTOR_TOP_K: ${TUTOR_TOP_K:-4}
       TUTOR_MAX_HISTORY: ${TUTOR_MAX_HISTORY:-6}
     volumes:
