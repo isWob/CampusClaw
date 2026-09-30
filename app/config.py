@@ -41,4 +41,17 @@ def config_from_env() -> dict:
         "SEED_TEACHER_A_PASSWORD": os.environ["SEED_TEACHER_A_PASSWORD"],
         "SEED_STUDENT_A1_PASSWORD": os.environ["SEED_STUDENT_A1_PASSWORD"],
         "SEED_STUDENT_B1_PASSWORD": os.environ["SEED_STUDENT_B1_PASSWORD"],
+        "JWT_EXPIRES": int(os.environ.get("JWT_EXPIRES", "3600")),
+        "QDRANT_URL": os.environ.get("QDRANT_URL", ""),
+        "EMBEDDING_BASE_URL": os.environ.get("EMBEDDING_BASE_URL", ""),
+        # embedding 与 chat 可共用同一 SiliconFlow key：优先专用名，回退统一名
+        "EMBEDDING_API_KEY": os.environ.get("EMBEDDING_API_KEY")
+        or os.environ.get("SiliconFlow_KEY", ""),
+        "EMBEDDING_MODEL": os.environ.get("EMBEDDING_MODEL", ""),
+        "CHAT_BASE_URL": os.environ.get("CHAT_BASE_URL", ""),
+        "CHAT_API_KEY": os.environ.get("CHAT_API_KEY")
+        or os.environ.get("SiliconFlow_KEY", ""),
+        "CHAT_MODEL": os.environ.get("CHAT_MODEL", ""),
+        "TUTOR_TOP_K": int(os.environ.get("TUTOR_TOP_K", "4")),
+        "TUTOR_MAX_HISTORY": int(os.environ.get("TUTOR_MAX_HISTORY", "6")),
     }

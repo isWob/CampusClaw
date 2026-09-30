@@ -47,6 +47,9 @@ def save_material_upload(db, upload_dir: Path, user, file_storage) -> int:
     except UnicodeDecodeError:
         raise UploadError("文件必须是非空 UTF-8 文本", 400)
 
+    # 3.5) 提取正文（与文件内容一致，不做改写）
+    body_text = data.decode("utf-8")
+
     # 4) 服务端生成存储名；客户端文件名只作展示，绝不参与路径构造
     stored_name = f"{uuid.uuid4().hex}{ext}"
     destination = upload_dir / stored_name
@@ -63,11 +66,19 @@ def save_material_upload(db, upload_dir: Path, user, file_storage) -> int:
             uploader_id=user["id"],
             filename=safe_name or stored_name,
             stored_path=stored_name,
+            body_text=body_text,
         )
     except Exception:
         if destination.exists():
             destination.unlink()
         current_app.logger.exception("材料入库失败，已回滚磁盘文件")
         raise UploadError("材料入库失败", 500)
+
+    # 知识库索引
+    from .indexing import build_index
+    try:
+        build_index(material_id, user["class_id"], body_text)
+    except Exception:
+        current_app.logger.exception("知识库索引失败，材料记录保留")
 
     return material_id

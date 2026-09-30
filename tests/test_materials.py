@@ -8,7 +8,28 @@ import pytest
 from app import repositories as repos
 from app.db import get_db
 
-from .conftest import A1_PASS, B1_PASS, TEACHER_PASS, login
+from .conftest import A1_PASS, B1_PASS, TEACHER_PASS, auth_headers, login
+
+
+class _AuthedClient:
+    """包装 Flask test_client，自动注入 Authorization: Bearer 头。
+
+    用于以 JWT（而非依赖 test_client 的 Cookie jar）发起受保护请求。
+    """
+
+    def __init__(self, client, token: str):
+        self._client = client
+        self._headers = {"Authorization": f"Bearer {token}"}
+
+    def get(self, *args, **kwargs):
+        headers = dict(self._headers)
+        headers.update(kwargs.pop("headers", None) or {})
+        return self._client.get(*args, headers=headers, **kwargs)
+
+    def post(self, *args, **kwargs):
+        headers = dict(self._headers)
+        headers.update(kwargs.pop("headers", None) or {})
+        return self._client.post(*args, headers=headers, **kwargs)
 
 
 @pytest.fixture
@@ -16,9 +37,17 @@ def personas(app):
     teacher = app.test_client()
     student_a = app.test_client()
     student_b = app.test_client()
-    assert login(teacher, "teacher_a", TEACHER_PASS).status_code == 200
-    assert login(student_a, "student_a1", A1_PASS).status_code == 200
-    assert login(student_b, "student_b1", B1_PASS).status_code == 200
+
+    teacher_resp = login(teacher, "teacher_a", TEACHER_PASS)
+    student_a_resp = login(student_a, "student_a1", A1_PASS)
+    student_b_resp = login(student_b, "student_b1", B1_PASS)
+    assert teacher_resp.status_code == 200
+    assert student_a_resp.status_code == 200
+    assert student_b_resp.status_code == 200
+
+    teacher = _AuthedClient(teacher, teacher_resp.get_json()["token"])
+    student_a = _AuthedClient(student_a, student_a_resp.get_json()["token"])
+    student_b = _AuthedClient(student_b, student_b_resp.get_json()["token"])
     return app, teacher, student_a, student_b
 
 

@@ -4,10 +4,9 @@
 <section class="card login-card">
   <h1>登录</h1>
   <p class="muted">教师与学生使用预置账号登录，班级数据按账号归属隔离。</p>
-  {% if error %}
-    <p class="flash flash-error" role="alert">{{ error }}</p>
-  {% endif %}
-  <form method="post" action="{{ url_for('auth.form_login') }}" class="form">
+  <p id="login-error" class="flash flash-error" role="alert"
+     {% if not error %}hidden{% endif %}>{{ error or '' }}</p>
+  <form id="login-form" method="post" action="{{ url_for('auth.form_login') }}" class="form">
     <label>
       用户名
       <input type="text" name="username" required autocomplete="username"
@@ -20,4 +19,36 @@
     <button type="submit" class="btn btn-primary">登录</button>
   </form>
 </section>
+<script>
+(function() {
+  const form = document.getElementById('login-form');
+  const err = document.getElementById('login-error');
+  form.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    err.hidden = true;
+    const username = form.querySelector('[name=username]').value;
+    const password = form.querySelector('[name=password]').value;
+    try {
+      const resp = await fetch('{{ url_for("auth.api_login") }}', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({username, password})
+      });
+      if (resp.ok) {
+        const data = await resp.json();
+        // token 入 localStorage 供前端 fetch 以 Authorization: Bearer 调 API
+        localStorage.setItem('token', data.token);
+        // 同源 Set-Cookie（HttpOnly）由浏览器自动保存，供页面导航鉴权
+        window.location.href = '{{ url_for("pages.materials_page") }}';
+      } else {
+        err.hidden = false;
+        err.textContent = '凭据无效';
+      }
+    } catch (_) {
+      err.hidden = false;
+      err.textContent = '网络错误，请重试';
+    }
+  });
+})();
+</script>
 {% endblock %}

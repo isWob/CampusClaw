@@ -24,6 +24,7 @@ def app(tmp_path):
             "SEED_TEACHER_A_PASSWORD": TEACHER_PASS,
             "SEED_STUDENT_A1_PASSWORD": A1_PASS,
             "SEED_STUDENT_B1_PASSWORD": B1_PASS,
+            "JWT_EXPIRES": 3600,
             "TESTING": True,
         }
     )
@@ -42,3 +43,9 @@ def login(client, username: str, password: str):
     return client.post(
         "/api/login", json={"username": username, "password": password}
     )
+
+
+def auth_headers(resp) -> dict:
+    """从登录响应中提取 token，返回 Authorization 头。"""
+    token = resp.get_json().get("token", "")
+    return {"Authorization": f"Bearer {token}"}

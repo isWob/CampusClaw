@@ -1,18 +1,21 @@
 """认证：登录/登出/当前会话身份（specs/user-auth）。
 
-- POST /api/login   JSON 接口：成功 200 设会话，失败 401 统一文案；
+- POST /api/login   JSON 接口：成功 200 签发 JWT（Cookie + JSON），失败 401 统一文案；
 - POST /login       登录页表单：成功 303 跳转材料页，失败 401 重渲染登录页；
-- POST /api/logout、POST /logout：清除会话；
+- POST /api/logout、POST /logout：吊销 JWT + 清 Cookie；
 - GET  /api/me      返回当前会话身份（供页面判定，授权仍只以服务端为准）。
 """
 
 from flask import (
-    Blueprint, g, jsonify, redirect, render_template, request, session, url_for,
+    Blueprint, current_app, g, jsonify, make_response, redirect,
+    render_template, request, url_for,
 )
 
 from .. import repositories as repos
 from ..db import get_db
+from ..jwt_utils import sign_token, verify_token
 from ..security import check_password
+from ..tokens import revoke
 
 bp = Blueprint("auth", __name__)
 
@@ -28,13 +31,15 @@ def _authenticate(username: str, password: str):
     return user
 
 
-def _start_session(user) -> None:
-    """登录成功先清空旧会话再写入（防会话固定），会话不存密码。"""
-    session.clear()
-    session["user_id"] = user["id"]
-    session["username"] = user["username"]
-    session["role"] = user["role"]
-    session["class_id"] = user["class_id"]
+def _issue_token(user, app) -> str:
+    """签发 JWT 并通过 Cookie 下发；返回 token 字符串。"""
+    token = sign_token(user, app.config["SECRET_KEY"], app.config["JWT_EXPIRES"])
+    return token
+
+
+def _set_token_cookie(resp, token) -> None:
+    """通过 HttpOnly Cookie 下发 JWT（供浏览器导航回退）。"""
+    resp.set_cookie("token", token, httponly=True, samesite="Lax", path="/")
 
 
 def _identity(user) -> dict:
@@ -53,14 +58,27 @@ def api_login():
     user = _authenticate(username, password)
     if user is None:
         return jsonify({"error": GENERIC_LOGIN_ERROR}), 401
-    _start_session(user)
-    return jsonify(_identity(user)), 200
+    token = _issue_token(user, current_app)
+    resp = jsonify({**_identity(user), "token": token})
+    _set_token_cookie(resp, token)
+    return resp, 200
 
 
 @bp.post("/api/logout")
 def api_logout():
-    session.clear()
-    return jsonify({"status": "logged_out"}), 200
+    """登出：吊销 JWT + 清 Cookie。"""
+    auth_header = request.headers.get("Authorization", "")
+    token = (
+        auth_header[7:] if auth_header.startswith("Bearer ")
+        else request.cookies.get("token")
+    )
+    if token:
+        payload = verify_token(token, current_app.config["SECRET_KEY"])
+        if payload:
+            revoke(payload["jti"], payload["exp"])
+    resp = jsonify({"status": "logged_out"})
+    resp.delete_cookie("token", path="/")
+    return resp, 200
 
 
 @bp.get("/api/me")
@@ -78,11 +96,19 @@ def form_login():
         return render_template(
             "login.html", error=GENERIC_LOGIN_ERROR, username=username
         ), 401
-    _start_session(user)
-    return redirect(url_for("pages.materials_page"), code=303)
+    token = _issue_token(user, current_app)
+    resp = make_response(redirect(url_for("pages.materials_page"), code=303))
+    _set_token_cookie(resp, token)
+    return resp
 
 
 @bp.post("/logout")
 def form_logout():
-    session.clear()
-    return redirect(url_for("pages.login_page"), code=303)
+    token = request.cookies.get("token")
+    if token:
+        payload = verify_token(token, current_app.config["SECRET_KEY"])
+        if payload:
+            revoke(payload["jti"], payload["exp"])
+    resp = make_response(redirect(url_for("pages.login_page"), code=303))
+    resp.delete_cookie("token", path="/")
+    return resp

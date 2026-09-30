@@ -17,12 +17,32 @@ services:
       SEED_STUDENT_A1_PASSWORD: ${SEED_STUDENT_A1_PASSWORD}
       SEED_STUDENT_B1_PASSWORD: ${SEED_STUDENT_B1_PASSWORD}
       MAX_UPLOAD_BYTES: ${MAX_UPLOAD_BYTES:-5242880}
+      JWT_EXPIRES: ${JWT_EXPIRES:-3600}
       DATABASE_PATH: /data/campusclaw.db
       UPLOAD_DIR: /data/uploads
+      QDRANT_URL: http://qdrant:6333
+      EMBEDDING_BASE_URL: ${EMBEDDING_BASE_URL:-}
+      EMBEDDING_API_KEY: ${EMBEDDING_API_KEY:-}
+      EMBEDDING_MODEL: ${EMBEDDING_MODEL:-}
+      CHAT_BASE_URL: ${CHAT_BASE_URL:-}
+      CHAT_API_KEY: ${CHAT_API_KEY:-}
+      CHAT_MODEL: ${CHAT_MODEL:-}
+      TUTOR_TOP_K: ${TUTOR_TOP_K:-4}
+      TUTOR_MAX_HISTORY: ${TUTOR_MAX_HISTORY:-6}
     volumes:
       # 命名卷持久化 SQLite 文件与上传目录：down 再 up（不加 -v）数据仍在
       - campusclaw-data:/data
+    depends_on:
+      - qdrant
+    restart: unless-stopped
+
+  qdrant:
+    image: qdrant/qdrant:latest
+    # 不映射宿主端口：仅内部网络可达
+    volumes:
+      - qdrant-data:/qdrant/storage
     restart: unless-stopped
 
 volumes:
   campusclaw-data:
+  qdrant-data:

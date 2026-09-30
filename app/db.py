@@ -34,3 +34,9 @@ def init_db() -> None:
     db = get_db()
     db.executescript(SCHEMA_PATH.read_text(encoding="utf-8"))
     db.commit()
+    # 幂等加列：materials.body_text（ALTER TABLE 不支持 IF NOT EXISTS）
+    try:
+        db.execute("ALTER TABLE materials ADD COLUMN body_text TEXT")
+        db.commit()
+    except sqlite3.OperationalError:
+        pass  # 列已存在

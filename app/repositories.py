@@ -61,11 +61,12 @@ def insert_material(
     uploader_id: int,
     filename: str,
     stored_path: str,
+    body_text: str = "",
 ) -> int:
     cur = db.execute(
-        "INSERT INTO materials (class_id, uploader_id, filename, stored_path)"
-        " VALUES (?, ?, ?, ?)",
-        (class_id, uploader_id, filename, stored_path),
+        "INSERT INTO materials (class_id, uploader_id, filename, stored_path, body_text)"
+        " VALUES (?, ?, ?, ?, ?)",
+        (class_id, uploader_id, filename, stored_path, body_text),
     )
     db.commit()
     return int(cur.lastrowid)

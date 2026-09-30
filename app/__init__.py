@@ -1,18 +1,28 @@
 """CampusClaw 迭代 1：单一 Flask 应用工厂。
 
 认证、授权、班级隔离全部在服务端强制执行：
-- 会话闸门（before_request）对每个受保护请求做完整校验（Complete Mediation）；
+- JWT 闸门（before_request）对每个受保护请求做完整校验（Complete Mediation）；
 - 角色与班级每请求从用户表读取，不采信客户端回传的任何身份声明。
 """
 
-from flask import Flask, g, jsonify, redirect, request, session, url_for
+from flask import Flask, g, jsonify, redirect, request, url_for
 
 from . import repositories as repos
 from .config import config_from_env
 from .db import close_db, get_db
+from .jwt_utils import verify_token
+from .tokens import is_revoked
 
-# 不入会话闸门的白名单：健康检查与登录/登出本身
+# 不入 JWT 闸门的白名单：健康检查与登录/登出本身
 OPEN_PATHS = {"/health", "/login", "/api/login", "/logout", "/api/logout"}
+
+
+def _extract_token(request) -> str | None:
+    """从 Authorization: Bearer 头或 Cookie 中提取 JWT。"""
+    auth_header = request.headers.get("Authorization", "")
+    if auth_header.startswith("Bearer "):
+        return auth_header[7:]
+    return request.cookies.get("token")
 
 
 def create_app(overrides: dict | None = None) -> Flask:
@@ -28,30 +38,40 @@ def create_app(overrides: dict | None = None) -> Flask:
         SEED_TEACHER_A_PASSWORD=config["SEED_TEACHER_A_PASSWORD"],
         SEED_STUDENT_A1_PASSWORD=config["SEED_STUDENT_A1_PASSWORD"],
         SEED_STUDENT_B1_PASSWORD=config["SEED_STUDENT_B1_PASSWORD"],
-        SESSION_COOKIE_HTTPONLY=True,
-        SESSION_COOKIE_SAMESITE="Lax",  # 同源站点；本机 HTTP 不设 Secure
+        JWT_EXPIRES=config.get("JWT_EXPIRES", 3600),
+        QDRANT_URL=config.get("QDRANT_URL", ""),
+        EMBEDDING_BASE_URL=config.get("EMBEDDING_BASE_URL", ""),
+        EMBEDDING_API_KEY=config.get("EMBEDDING_API_KEY", ""),
+        EMBEDDING_MODEL=config.get("EMBEDDING_MODEL", ""),
+        CHAT_BASE_URL=config.get("CHAT_BASE_URL", ""),
+        CHAT_API_KEY=config.get("CHAT_API_KEY", ""),
+        CHAT_MODEL=config.get("CHAT_MODEL", ""),
+        TUTOR_TOP_K=config.get("TUTOR_TOP_K", 4),
+        TUTOR_MAX_HISTORY=config.get("TUTOR_MAX_HISTORY", 6),
     )
 
     app.teardown_appcontext(close_db)
 
-    from .blueprints import auth, health, materials, pages
+    from .blueprints import auth, health, materials, pages, search, tutor
 
     app.register_blueprint(health.bp)
     app.register_blueprint(auth.bp)
     app.register_blueprint(materials.bp)
     app.register_blueprint(pages.bp)
+    app.register_blueprint(search.bp)
+    app.register_blueprint(tutor.bp)
 
     @app.before_request
-    def session_gate():
-        """每个请求的认证闸门 + 从库恢复身份（默认拒绝，白名单除外）。"""
+    def jwt_gate():
+        """JWT 验证闸门：验签 → 验吊销 → 回库查真实身份。"""
         g.current_user = None
-        if session.get("user_id"):
-            user = repos.get_user_by_id(get_db(), session["user_id"])
-            if user is not None:
-                g.current_user = user
-            else:
-                # 会话指向已不存在的账号，作废该会话
-                session.clear()
+        token = _extract_token(request)
+        if token:
+            payload = verify_token(token, app.config["SECRET_KEY"])
+            if payload and not is_revoked(payload.get("jti", "")):
+                user = repos.get_user_by_id(get_db(), payload["sub"])
+                if user is not None:
+                    g.current_user = user
 
         if request.path in OPEN_PATHS or request.path.startswith("/static"):
             return None
